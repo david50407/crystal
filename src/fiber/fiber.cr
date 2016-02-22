@@ -45,11 +45,29 @@ class Fiber
   end
 
   protected def self.allocate_stack
-    @@stack_pool.pop? || LibC.mmap(nil, Fiber::STACK_SIZE,
-      LibC::PROT_READ | LibC::PROT_WRITE,
-      LibC::MAP_PRIVATE | LibC::MAP_ANON,
-      -1, LibC::SSizeT.new(0)).tap do |pointer|
-      raise Errno.new("Cannot allocate new fiber stack") if pointer == LibC::MAP_FAILED
+    ifdef windows
+      @@stack_pool.pop? || WinApi.map_view_of_file(
+        handle = WinApi.create_file_mapping(
+          WinApi::INVALID_HANDLE, nil,
+          WinApi::PAGE_READWRITE,
+          Fiber::STACK_SIZE >> 16 >> 16,
+          Fiber::STACK_SIZE & 0xffffffff,
+          nil
+        ).tap do |handle|
+          raise Errno.new("Connot allocate new fiber stack") if handle.nil?
+        end,
+        0, 0, 0, Fiber::STACK_SIZE
+      ).tap do |ptr|
+        WinApi.close_handle(handle)
+        raise Errno.new("Connot allocate new fiber stack") if ptr.nil?
+      end
+    else
+      @@stack_pool.pop? || LibC.mmap(nil, Fiber::STACK_SIZE,
+        LibC::PROT_READ | LibC::PROT_WRITE,
+        LibC::MAP_PRIVATE | LibC::MAP_ANON,
+        -1, LibC::SSizeT.new(0)).tap do |pointer|
+        raise Errno.new("Cannot allocate new fiber stack") if pointer == LibC::MAP_FAILED
+      end
     end
   end
 
@@ -58,7 +76,11 @@ class Fiber
     free_count = @@stack_pool.size > 1 ? @@stack_pool.size / 2 : 1
     free_count.times do
       stack = @@stack_pool.pop
-      LibC.munmap(stack, Fiber::STACK_SIZE)
+      ifdef windows
+        WinApi.unmap_view_of_file(stack)
+      else
+        LibC.munmap(stack, Fiber::STACK_SIZE)
+      end
     end
   end
 

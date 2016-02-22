@@ -26,6 +26,19 @@ lib LibC
     O_TRUNC    =    0x0400
     O_NONBLOCK =    0x0004
     O_CLOEXEC  = 0x1000000
+  elsif windows
+    O_RDONLY     = 0x0000
+    O_WRONLY     = 0x0001
+    O_RDWR       = 0x0002
+    O_ACCMODE    = O_RDONLY | O_WRONLY | O_RDWR
+    O_APPEND     = 0x0008
+    O_RANDOM     = 0x0010
+    O_SEQUENTIAL = 0x0020
+    O_TEMPORARY  = 0x0040
+    O_NOINHERIT  = 0x0080
+    O_CREAT      = 0x0100
+    O_TRUNC      = 0x0200
+    O_EXCL       = 0x0400
   end
 
   S_IRWXU = 0o000700 # RWX mask for owner
@@ -44,22 +57,34 @@ lib LibC
   EWOULDBLOCK = 140
   EAGAIN      =  11
 
-  fun fcntl(fd : Int, cmd : FCNTL, ...) : Int
-  fun getchar : Int
-  fun putchar(c : Int) : Int
-  fun puts(str : Char*) : Int
-  fun printf(str : Char*, ...) : Int
-  fun execl(path : Char*, arg0 : Char*, ...) : Int
-  fun waitpid(pid : PidT, stat_loc : Int*, options : Int) : PidT
-  fun open(path : Char*, oflag : Int, ...) : Int
-  fun dup2(fd : Int, fd2 : Int) : Int
-  fun read(fd : Int, buffer : Char*, nbyte : SizeT) : SSizeT
-  fun write(fd : Int, buffer : Char*, nbyte : SizeT) : SSizeT
-  fun pipe(filedes : Int[2]*) : Int
-  fun select(nfds : Int, readfds : Void*, writefds : Void*, errorfds : Void*, timeout : TimeVal*) : Int
-  fun lseek(fd : Int, offset : OffT, whence : Int) : OffT
-  fun close(fd : Int) : Int
-  fun isatty(fd : Int) : Int
+  ifdef darwin || linux
+    fun fcntl(fd : Int, cmd : FCNTL, ...) : Int
+    fun getchar : Int
+    fun putchar(c : Int) : Int
+    fun puts(str : Char*) : Int
+    fun printf(str : Char*, ...) : Int
+    fun execl(path : Char*, arg0 : Char*, ...) : Int
+    fun waitpid(pid : PidT, stat_loc : Int*, options : Int) : PidT
+    fun open(path : Char*, oflag : Int, ...) : Int
+    fun dup2(fd : Int, fd2 : Int) : Int
+    fun read(fd : Int, buffer : Char*, nbyte : SizeT) : SSizeT
+    fun write(fd : Int, buffer : Char*, nbyte : SizeT) : SSizeT
+    fun pipe(filedes : Int[2]*) : Int
+    fun select(nfds : Int, readfds : Void*, writefds : Void*, errorfds : Void*, timeout : TimeVal*) : Int
+    fun lseek(fd : Int, offset : OffT, whence : Int) : OffT
+    fun close(fd : Int) : Int
+    fun isatty(fd : Int) : Int
+  elsif windows
+    fun getchar : Int
+    fun putchar(c : Int) : Int
+    fun puts(str : Char*) : Int
+    fun printf(str : Char*, ...) : Int
+    fun isatty = _isatty(fd : Int) : Int
+    fun read = _read(fd : Int, buffer : Char*, count : SizeT) : SSizeT
+    fun write = _write(fd : Int, buffer : Char*, count : SizeT) : SSizeT
+    fun pipe = _pipe(filedes : Int[2]*, psize : UInt, textmode : Int) : Int
+    fun close = _close(fd : Int) : Int
+  end
 end
 
 # The IO module is the basis for all input and output in Crystal.
@@ -235,8 +260,14 @@ module IO
   # reader.gets # => "world"
   # ```
   def self.pipe(read_blocking = false, write_blocking = false)
-    if LibC.pipe(out pipe_fds) != 0
-      raise Errno.new("Could not create pipe")
+    ifdef windows
+      if LibC.pipe(out pipe_fds, 65536, LibC::O_NOINHERIT) != 0
+        raise Errno.new("Could not create pipe")
+      end
+    else
+      if LibC.pipe(out pipe_fds) != 0
+        raise Errno.new("Could not create pipe")
+      end
     end
 
     r = IO::FileDescriptor.new(pipe_fds[0], read_blocking)

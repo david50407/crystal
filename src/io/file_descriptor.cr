@@ -64,17 +64,25 @@ class IO::FileDescriptor
   end
 
   def blocking
-    fcntl(LibC::FCNTL::F_GETFL) & LibC::O_NONBLOCK == 0
+    ifdef windows
+      true # TODO
+    else
+      fcntl(LibC::FCNTL::F_GETFL) & LibC::O_NONBLOCK == 0
+    end
   end
 
   def blocking=(value)
-    flags = fcntl(LibC::FCNTL::F_GETFL)
-    if value
-      flags &= ~LibC::O_NONBLOCK
+    ifdef windows
+      true # TODO
     else
-      flags |= LibC::O_NONBLOCK
+      flags = fcntl(LibC::FCNTL::F_GETFL)
+      if value
+        flags &= ~LibC::O_NONBLOCK
+      else
+        flags |= LibC::O_NONBLOCK
+      end
+      fcntl(LibC::FCNTL::F_SETFL, flags)
     end
-    fcntl(LibC::FCNTL::F_SETFL, flags)
   end
 
   def close_on_exec?
@@ -88,9 +96,14 @@ class IO::FileDescriptor
   end
 
   def self.fcntl(fd, cmd, arg = 0)
-    r = LibC.fcntl fd, cmd, arg
-    raise Errno.new("fcntl() failed") if r == -1
-    r
+    ifdef windows
+      # TODO
+      0
+    else
+      r = LibC.fcntl fd, cmd, arg
+      raise Errno.new("fcntl() failed") if r == -1
+      r
+    end
   end
 
   def fcntl(cmd, arg = 0)

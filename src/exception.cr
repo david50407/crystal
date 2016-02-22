@@ -21,7 +21,7 @@ struct CallStack
       makecontext_start = makecontext_end = LibDL.dlsym(LibDL::RTLD_DEFAULT, "makecontext")
 
       while true
-        ret = LibDL.dladdr(makecontext_end, out info)
+        ret = LibDL.dladdr(makecontext_end.handle, out info)
         break if ret == 0 || info.sname.nil?
         break unless LibC.strcmp(info.sname, "makecontext") == 0
         makecontext_end += 1

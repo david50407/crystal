@@ -6,7 +6,8 @@ lib LibEvent2
   alias Int = LibC::Int
 
   ifdef windows
-    # TODO
+    # TODO: 32bit vs 64bit system
+    alias EvutilSocketT = Int
   else
     alias EvutilSocketT = Int
   end

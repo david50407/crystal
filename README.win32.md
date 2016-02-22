@@ -2,7 +2,7 @@ Crystal version: `0.10.0`
 
 # TODO for compiler
 
-Preludes:
+## Preludes
 
 - [ ] intrinsics
 - [ ] reflect
@@ -11,57 +11,72 @@ Preludes:
   - [ ] Mode
 - [x] macros
 - [x] object
-- [ ] reference
-- [x] exception
-- [ ] value
-- [ ] struct
-- [ ] proc
-- [ ] thread
+- [x] reference
+- [ ] exception
+  - [ ] Unwind
+  - [x] dl
+		- replaced by WinApi
+- [x] value
+- [x] struct
+- [x] proc
+- [x] thread
 - [x] gc
 - [x] gc/null
-- [ ] gc/boehm
-- [ ] class
-- [ ] comparable
-- [ ] enumerable
-- [ ] iterable
-- [ ] iterator
-- [ ] nil
-- [ ] bool
-- [ ] char
-- [ ] number
-- [ ] int
-- [ ] float
-- [ ] pointer
-- [ ] slice
-- [ ] range
-- [ ] char/reader
-- [ ] string
-- [ ] symbol
-- [ ] enum
-- [ ] static_array
-- [ ] array
-- [ ] hash
-- [ ] set
-- [ ] tuple
-- [ ] box
-- [ ] math/math
+- [x] gc/boehm
+  - with pre-built (gc-lib.lib)[https://dl.dropboxusercontent.com/u/1707310/Crystal/gc-lib.lib]
+- [x] class
+- [x] comparable
+- [x] enumerable
+- [x] iterable
+- [x] iterator
+- [x] nil
+- [x] bool
+- [x] char
+- [x] number
+- [x] int
+- [x] float
+- [x] pointer
+- [x] slice
+- [x] range
+- [x] char/reader
+- [x] string
+- [x] symbol
+- [x] enum
+- [x] static_array
+- [x] array
+- [x] hash
+- [x] set
+- [x] tuple
+- [x] box
+- [x] math/math
 - [ ] process
 - [ ] io
 - [ ] env
 - [ ] file
 - [ ] dir
-- [ ] time
-- [ ] random
-- [ ] regex
+- [x] time
+- [x] random
+- [x] regex
+  - with pre-built (libpcre.lib)[https://dl.dropboxusercontent.com/u/1707310/Crystal/libpcre.lib]
 - [ ] raise
 - [ ] errno
-- [ ] concurrent
+- [x] concurrent
+  - [x] libevent (event2)
+    - with pre-built (libevent.lib)[https://dl.dropboxusercontent.com/u/1707310/Crystal/libevent.lib]
 - [ ] signal
 - [ ] kernel
   - [ ] AtExitHandlers
   - [ ] Process/Fiber cleaning
 - [ ] main
   - [ ] use normal `main`
+
+## Other
+
+- [x] fiber
+  - with pre-built (pcl.lib)[https://dl.dropboxusercontent.com/u/1707310/Crystal/pcl.lib]
+- [ ] winapi `New prelude`
+  - [ ] kernel32
+    - [x] mmap
 
 # Cross compiling Crystal for Windows from Linux
 
