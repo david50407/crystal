@@ -713,7 +713,7 @@ describe "Type inference: class" do
     assert_type(%(
       class Foo
         def initialize
-          @x :: Int32
+          @x = uninitialized Int32
           @x + 1
         end
 
@@ -897,5 +897,20 @@ describe "Type inference: class" do
       Foo.new
       ),
       "private method 'new' called for Foo"
+  end
+
+  it "errors if creating instance before typing instance variable" do
+    assert_error %(
+      class Foo
+        Foo.new
+
+        @x : Int32
+
+        def initialize
+          @x = false
+        end
+      end
+      ),
+      "type must be Int32"
   end
 end

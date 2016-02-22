@@ -1,7 +1,7 @@
 class IPSocket < Socket
   macro sockname(name, method)
     def {{name.id}}
-      addr :: LibC::SockAddrIn6
+      addr = uninitialized LibC::SockAddrIn6
       addrlen = LibC::SocklenT.new(sizeof(LibC::SockAddrIn6))
 
       if LibC.{{method.id}}(fd, pointerof(addr) as LibC::SockAddr*, pointerof(addrlen)) != 0
@@ -42,6 +42,10 @@ class IPSocket < Socket
   # (to connect or bind, for example), and false otherwise. If it returns false and
   # the LibC::Addrinfo has a next LibC::Addrinfo, it is yielded to the block, and so on.
   private def getaddrinfo(host, port, family, socktype, protocol = LibC::IPPROTO_IP, timeout = nil)
+    IPSocket.getaddrinfo(host, port, family, socktype, protocol, timeout) { |ai| yield ai }
+  end
+
+  def self.getaddrinfo(host, port, family, socktype, protocol = LibC::IPPROTO_IP, timeout = nil)
     hints = LibC::Addrinfo.new
     hints.family = (family || LibC::AF_UNSPEC).to_i32
     hints.socktype = socktype
@@ -90,12 +94,10 @@ class IPSocket < Socket
         LibEvent2.evutil_freeaddrinfo value
       end
     elsif value.is_a?(Int)
-      error_message =
-        if value == LibEvent2::EVUTIL_EAI_CANCEL
-          "Timed out"
-        else
-          String.new(LibC.gai_strerror(value))
-        end
+      if value == LibEvent2::EVUTIL_EAI_CANCEL
+        raise IO::Timeout.new("Failed to resolve #{host} in #{timeout} seconds")
+      end
+      error_message = String.new(LibC.gai_strerror(value))
       raise Socket::Error.new("getaddrinfo: #{error_message}")
     else
       raise "unknown type #{value.inspect}"

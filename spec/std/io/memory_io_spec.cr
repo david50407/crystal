@@ -250,4 +250,50 @@ describe "MemoryIO" do
       io.print 'z'
     end
   end
+
+  it "writes past end" do
+    io = MemoryIO.new
+    io.pos = 1000
+    io.print 'a'
+    io.to_slice.to_a.should eq([0] * 1000 + [97])
+  end
+
+  it "writes past end with write_byte" do
+    io = MemoryIO.new
+    io.pos = 1000
+    io.write_byte 'a'.ord.to_u8
+    io.to_slice.to_a.should eq([0] * 1000 + [97])
+  end
+
+  describe "encoding" do
+    describe "decode" do
+      it "gets_to_end" do
+        str = "Hello world" * 200
+        io = MemoryIO.new(str.encode("UCS-2LE"))
+        io.set_encoding("UCS-2LE")
+        io.gets_to_end.should eq(str)
+      end
+
+      it "gets" do
+        str = "Hello world\nFoo\nBar\n" + ("1234567890" * 1000)
+        io = MemoryIO.new(str.encode("UCS-2LE"))
+        io.set_encoding("UCS-2LE")
+        io.gets.should eq("Hello world\n")
+        io.gets.should eq("Foo\n")
+        io.gets.should eq("Bar\n")
+      end
+
+      it "reads char" do
+        str = "x\nHello world" + ("1234567890" * 1000)
+        io = MemoryIO.new(str.encode("UCS-2LE"))
+        io.set_encoding("UCS-2LE")
+        io.gets.should eq("x\n")
+        str = str[2..-1]
+        str.each_char do |char|
+          io.read_char.should eq(char)
+        end
+        io.read_char.should be_nil
+      end
+    end
+  end
 end

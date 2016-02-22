@@ -24,6 +24,12 @@ describe "BigInt" do
     BigInt.new("12345678").to_s.should eq("12345678")
   end
 
+  it "raises if creates from string but invalid" do
+    expect_raises ArgumentError, "invalid BigInt: 123 hello 456" do
+      BigInt.new("123 hello 456")
+    end
+  end
+
   it "creates from float" do
     BigInt.new(12.3).to_s.should eq("12")
   end
@@ -196,5 +202,9 @@ describe "BigInt" do
   it "does String#to_big_i" do
     "123456789123456789".to_big_i.should eq(BigInt.new("123456789123456789"))
     "abcabcabcabcabcabc".to_big_i(base: 16).should eq(BigInt.new("3169001976782853491388"))
+  end
+
+  it "does popcount" do
+    5.to_big_i.popcount.should eq(2)
   end
 end

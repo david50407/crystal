@@ -20,7 +20,7 @@ lib LibGMP
   fun init_set_ui = __gmpz_init_set_ui(rop : MPZ*, op : ULong)
   fun init_set_si = __gmpz_init_set_si(rop : MPZ*, op : Long)
   fun init_set_d = __gmpz_init_set_d(rop : MPZ*, op : Double)
-  fun init_set_str = __gmpz_init_set_str(rop : MPZ*, str : UInt8*, base : Int)
+  fun init_set_str = __gmpz_init_set_str(rop : MPZ*, str : UInt8*, base : Int) : Int
 
   # # I/O
 
@@ -65,6 +65,10 @@ lib LibGMP
 
   fun fdiv_q_2exp = __gmpz_fdiv_q_2exp(q : MPZ*, n : MPZ*, b : BitcntT)
   fun mul_2exp = __gmpz_mul_2exp(rop : MPZ*, op1 : MPZ*, op2 : BitcntT)
+
+  # # Logic
+
+  fun popcount = __gmpz_popcount(op : MPZ*) : BitcntT
 
   # # Comparison
 

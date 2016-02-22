@@ -111,7 +111,7 @@ module Crystal
 
     def visit(node : TypeOf)
       meta_vars = MetaVars{"self": MetaVar.new("self", @self_type)}
-      visitor = TypeVisitor.new(program, meta_vars)
+      visitor = MainVisitor.new(program, meta_vars)
       node.expressions.each &.accept visitor
       @type = program.type_merge node.expressions
       false
@@ -187,6 +187,17 @@ module Crystal
         end
       end
       nil
+    end
+  end
+
+  module GenericType
+    def lookup_type(names : Array, already_looked_up = TypeIdSet.new, lookup_in_container = true)
+      # If we are Foo(T) and somebody looks up the type T, we return `nil` because we don't
+      # know what type T is, and we don't want to continue search in the container
+      if !names.empty? && type_vars.includes?(names[0])
+        return nil
+      end
+      super
     end
   end
 

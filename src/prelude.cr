@@ -80,6 +80,7 @@ else
   require "slice"
   require "range"
   require "char/reader"
+  require "iconv"
   require "string"
   require "symbol"
   require "enum"
@@ -105,3 +106,4 @@ else
   require "kernel"
 end
 require "main"
+require "ext"

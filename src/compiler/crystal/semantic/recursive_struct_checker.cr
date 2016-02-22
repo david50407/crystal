@@ -1,8 +1,24 @@
-class Crystal::Program
-  def check_hierarchy_errors
-    RecursiveStructChecker.new(self).run
+module Crystal
+  class Program
+    def check_recursive_structs
+      RecursiveStructChecker.new(self).run
+    end
   end
 
+  # Checks that there are no recursive structs in the program.
+  #
+  # An example of a recursive struct is:
+  #
+  # ```
+  # struct Test
+  #   def initialize(@test)
+  #   end
+  # end
+  #
+  # Test.new(Test.new(nil))
+  # ```
+  #
+  # Because the type of `Test.@test` would be: `Test | Nil`.
   class RecursiveStructChecker
     def initialize(@program)
       @all_checked = Set(Type).new
@@ -68,7 +84,7 @@ class Crystal::Program
 
     def check_recursive_instance_var_container(target, type, checked, path)
       checked.add type
-      (type as InstanceVarContainer).instance_vars.each_value do |var|
+      (type as InstanceVarContainer).all_instance_vars.each_value do |var|
         var_type = var.type?
         next unless var_type
 

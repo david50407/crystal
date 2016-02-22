@@ -377,18 +377,23 @@ describe Crystal::Formatter do
   assert_format "include  Foo", "include Foo"
   assert_format "extend  Foo", "extend Foo"
 
-  assert_format "x  ::  Int32", "x :: Int32"
-  assert_format "x  ::  Int32*", "x :: Int32*"
-  assert_format "x  ::  Int32**", "x :: Int32**"
-  assert_format "x  ::  A  |  B", "x :: A | B"
-  assert_format "x  ::  A?", "x :: A?"
-  assert_format "x  ::  Int32[ 8 ]", "x :: Int32[8]"
-  assert_format "x  ::  (A | B)", "x :: (A | B)"
-  assert_format "x  ::  (A -> B)", "x :: (A -> B)"
-  assert_format "x  ::  (A -> B)?", "x :: (A -> B)?"
-  assert_format "x  ::  {A, B}", "x :: {A, B}"
-  assert_format "class Foo\n@x :: Int32\nend", "class Foo\n  @x :: Int32\nend"
+  assert_format "x  :   Int32", "x : Int32"
+  assert_format "x  :   Int32*", "x : Int32*"
+  assert_format "x  :   Int32**", "x : Int32**"
+  assert_format "x  :   A  |  B", "x : A | B"
+  assert_format "x  :   A?", "x : A?"
+  assert_format "x  :   Int32[ 8 ]", "x : Int32[8]"
+  assert_format "x  :   (A | B)", "x : (A | B)"
+  assert_format "x  :   (A -> B)", "x : (A -> B)"
+  assert_format "x  :   (A -> B)?", "x : (A -> B)?"
+  assert_format "x  :   {A, B}", "x : {A, B}"
+  assert_format "class Foo\n@x  : Int32\nend", "class Foo\n  @x : Int32\nend"
+  assert_format "class Foo\n@x  :  Int32\nend", "class Foo\n  @x : Int32\nend"
   assert_format "class Foo\nx = 1\nend", "class Foo\n  x = 1\nend"
+  assert_format "x  =   uninitialized   Int32", "x = uninitialized Int32"
+
+  assert_format "def foo\n@x  :  Int32\nend", "def foo\n  @x : Int32\nend"
+  assert_format "def foo\n@x   =  uninitialized   Int32\nend", "def foo\n  @x = uninitialized Int32\nend"
 
   assert_format "x = 1\nx    +=   1", "x = 1\nx += 1"
   assert_format "x[ y ] += 1", "x[y] += 1"
@@ -561,8 +566,9 @@ describe Crystal::Formatter do
 
   assert_format %(asm("nop"))
   assert_format %(asm(\n"nop"\n)), %(asm(\n  "nop"\n))
-  assert_format %(asm("nop" : : )), %(asm("nop" : : ))
-  assert_format %(asm("nop" :: )), %(asm("nop" : : ))
+  assert_format %(asm("nop" : : )), %(asm("nop" ::))
+  assert_format %(asm("nop" :: )), %(asm("nop" ::))
+  assert_format %(asm("nop" :: "r"(0))), %(asm("nop" :: "r"(0)))
   assert_format %(asm("nop" : "a"(0) )), %(asm("nop" : "a"(0)))
   assert_format %(asm("nop" : "a"(0) : "b"(1) )), %(asm("nop" : "a"(0) : "b"(1)))
   assert_format %(asm("nop" : "a"(0) : "b"(1), "c"(2) )), %(asm("nop" : "a"(0) : "b"(1), "c"(2)))
@@ -570,6 +576,11 @@ describe Crystal::Formatter do
   assert_format %(asm("nop" : "a"(0)\n: "b"(1),\n"c"(2) )), %(asm("nop" : "a"(0)\n          : "b"(1),\n            "c"(2)))
   assert_format %(asm(\n"nop" : "a"(0) )), %(asm(\n  "nop" : "a"(0)\n))
   assert_format %(asm("nop"\n: "a"(0) )), %(asm("nop"\n        : "a"(0)))
+  assert_format %(asm("nop" ::: "eax" )), %(asm("nop" ::: "eax"))
+  assert_format %(asm("nop" ::: "eax" ,  "ebx" )), %(asm("nop" ::: "eax", "ebx"))
+  assert_format %(asm("nop" :::: "volatile" )), %(asm("nop" :::: "volatile"))
+  assert_format %(asm("nop" :::: "volatile"  , "alignstack"  ,  "intel"   )), %(asm("nop" :::: "volatile", "alignstack", "intel"))
+  assert_format %(asm("nop" ::: "eax" ,  "ebx" :   "volatile"  ,  "alignstack" )), %(asm("nop" ::: "eax", "ebx" : "volatile", "alignstack"))
 
   assert_format "1 # foo\n1234 # bar", "1    # foo\n1234 # bar"
   assert_format "1234 # foo\n1 # bar", "1234 # foo\n1    # bar"
@@ -764,4 +775,28 @@ describe Crystal::Formatter do
   assert_format "return 1\n# end"
   assert_format "case\n# hello\nwhen 1\n  2\nend"
   assert_format "case 1\nwhen 2 # a\n  # b\nend"
+
+  assert_format "{} of A => B\n{} of Foo => Bar"
+
+  assert_format "<<-HTML\n  \#{1}x\n  HTML"
+  assert_format "<<-HTML\n  \#{1}x\n  y\n  HTML"
+  assert_format "<<-HTML\n  \#{1}x\n  y\n  z\n  HTML"
+
+  assert_format "#!shebang\n1 + 2"
+
+  assert_format "   {{\n1 + 2 }}", "{{\n  1 + 2\n}}"
+  assert_format "   {{\n1 + 2\n   }}", "{{\n  1 + 2\n}}"
+  assert_format "   {%\na = 1 %}", "{%\n  a = 1\n%}"
+  assert_format "   {%\na = 1\n   %}", "{%\n  a = 1\n%}"
+
+  assert_format "macro foo\n  {{\n1 + 2 }}\nend", "macro foo\n  {{\n    1 + 2\n  }}\nend"
+  assert_format "macro foo\n  def bar\n    {{\n      1 + 2\n    }}\n  end\nend"
+  assert_format "foo &.[]"
+  assert_format "foo &.[](1, 2)"
+  assert_format "foo &.[](  1, 2  )", "foo &.[](1, 2)"
+  assert_format "foo &.[]?"
+  assert_format "foo &.[]?(1, 2)"
+  assert_format "foo &.[]?(  1, 2  )", "foo &.[]?(1, 2)"
+  assert_format "foo &.[]=(1, 2)"
+  assert_format "foo &.[]=(  1, 2  )", "foo &.[]=(1, 2)"
 end

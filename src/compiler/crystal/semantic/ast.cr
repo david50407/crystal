@@ -21,7 +21,7 @@ module Crystal
     property! dependencies
     property freeze_type
     property observers
-    property input_observers
+    property input_observer
 
     @dirty = false
 
@@ -131,7 +131,7 @@ module Crystal
       node.remove_observer self
     end
 
-    def unbind_from(nodes : Array(ASTNode))
+    def unbind_from(nodes : Array)
       nodes.each do |node|
         unbind_from node
       end
@@ -144,8 +144,8 @@ module Crystal
     end
 
     def add_observer(observer)
-      observers = (@observers ||= [] of ASTNode)
-      observers << observer
+      observers = (@observers ||= Dependencies.new)
+      observers.push observer
     end
 
     def remove_observer(observer)
@@ -153,19 +153,19 @@ module Crystal
     end
 
     def add_input_observer(observer)
-      input_observers = (@input_observers ||= [] of Call)
-      input_observers << observer
+      raise "Bug: already had input observer" if @input_observer
+      @input_observer = observer
     end
 
     def remove_input_observer(observer)
-      @input_observers.try &.reject! &.same?(observer)
+      @input_observer = nil if @input_observer.same?(observer)
     end
 
     def notify_observers
       @observers.try &.each &.update self
-      @input_observers.try &.each &.update_input self
+      @input_observer.try &.update_input self
       @observers.try &.each &.propagate
-      @input_observers.try &.each &.propagate
+      @input_observer.try &.propagate
     end
 
     def update(from)
@@ -235,7 +235,9 @@ module Crystal
     property! :original_owner
     property :vars
     property :yield_vars
+
     property :raises
+    @raises = false
 
     property closure
     @closure = false
@@ -251,6 +253,9 @@ module Crystal
     property :block_nest
     @block_nest = 0
 
+    property? :captured_block
+    @captured_block = false
+
     def macro_owner=(@macro_owner)
     end
 
@@ -261,6 +266,17 @@ module Crystal
     def add_special_var(name)
       special_vars = @special_vars ||= Set(String).new
       special_vars << name
+    end
+
+    def raises=(value)
+      if value != @raises
+        @raises = value
+        @observers.try &.each do |obs|
+          if obs.is_a?(Call)
+            obs.raises = value
+          end
+        end
+      end
     end
   end
 
@@ -515,7 +531,7 @@ module Crystal
     def inspect(io)
       io << name
       if type = type?
-        io << " :: "
+        io << " : "
         type.to_s(io)
       end
       io << " (nil-if-read)" if nil_if_read
@@ -628,14 +644,30 @@ module Crystal
 
   class ClassDef
     include RuntimeInitializable
+
+    property! resolved_type
+    property created_new_type
+    @created_new_type = false
+  end
+
+  class ModuleDef
+    property! resolved_type
+  end
+
+  class LibDef
+    property! resolved_type
   end
 
   class Include
     include RuntimeInitializable
+
+    property! resolved_type
   end
 
   class Extend
     include RuntimeInitializable
+
+    property! resolved_type
   end
 
   class Def
@@ -654,6 +686,7 @@ module Crystal
 
   class EnumDef
     property enum_type
+    property! resolved_type
   end
 
   class Yield
