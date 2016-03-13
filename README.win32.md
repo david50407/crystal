@@ -1,4 +1,4 @@
-Crystal version: `0.10.0`
+Crystal version: `0.12.0`
 
 # TODO for compiler
 
@@ -108,7 +108,7 @@ Build Crystal on Linux first, and we are going to use this build below: (we set 
 
 1. Compile Crystal code to LLVM bytecode on Linux
 
-    $ DUMP=1 PATH="crystal/.build" crystal build --single-module --cross-compile "windows" code.cr 2> code.ll
+    $ DUMP=1 PATH="crystal/.build" crystal build --single-module --cross-compile "windows x86_64" code.cr 2> code.ll
     cc code.o -o code -rdynamic
     $
 
@@ -137,7 +137,7 @@ Build Crystal on Linux first, and we are going to use this build below: (we set 
 
 1. Compile Crystal code to LLVM bytecode on Linux
 
-    $ DUMP=1 PATH="crystal/.build" crystal build --single-module --cross-compile "windows" code.cr 2> code.ll
+    $ DUMP=1 PATH="crystal/.build" crystal build --single-module --cross-compile "windows x86_64" code.cr 2> code.ll
     cc code.o -o code -rdynamic
     $
 

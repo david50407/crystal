@@ -1,5 +1,5 @@
 lib LibC
-  ifdef linux
+  ifdef linux || windows
     @[ThreadLocal]
     $errno : Int
   elsif darwin
@@ -14,6 +14,7 @@ end
 #
 # This class is the exception thrown when errno errors are encountered.
 class Errno < Exception
+  # TODO: windows
   ifdef darwin
     EPERM           =  1     # Operation not permitted
     ENOENT          =  2     # No such file or directory
@@ -214,7 +215,7 @@ class Errno < Exception
 
   # Returns the value of libc's errno.
   def self.value
-    ifdef linux
+    ifdef linux || windows
       LibC.errno
     elsif darwin
       LibC.__error.value
@@ -223,7 +224,7 @@ class Errno < Exception
 
   # Sets the value of libc's errno.
   def self.value=(value)
-    ifdef linux
+    ifdef linux || windows
       LibC.errno = value
     elsif darwin
       LibC.__error.value = value
