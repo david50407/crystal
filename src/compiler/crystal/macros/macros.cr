@@ -561,7 +561,7 @@ module Crystal
           env_value = ENV[cmd]?
           @last = env_value ? StringLiteral.new(env_value) : NilLiteral.new
         else
-          node.raise "wrong number of arguments for macro call 'env' (#{node.args.size} for 1)"
+          node.wrong_number_of_arguments "macro call 'env'", node.args.size, 1
         end
       end
 
@@ -614,29 +614,42 @@ module Crystal
 
       def execute_run(node)
         if node.args.size == 0
-          node.raise "wrong number of arguments for macro run (0 for 1..)"
+          node.wrong_number_of_arguments "macro call 'run'", 0, "1+"
         end
 
         node.args.first.accept self
         filename = @last.to_macro_id
         original_filanme = filename
 
-        begin
-          relative_to = @location.try &.original_filename
-          found_filenames = @mod.find_in_path(filename, relative_to)
-        rescue ex
-          node.raise "error executing macro run: #{ex.message}"
-        end
+        # Support absolute paths
+        if filename.starts_with?("/")
+          filename = "#{filename}.cr" unless filename.ends_with?(".cr")
 
-        unless found_filenames
-          node.raise "error executing macro run: can't find file '#{filename}'"
-        end
+          if File.exists?(filename)
+            unless File.file?(filename)
+              node.raise "error executing macro run: '#{filename}' is not a file"
+            end
+          else
+            node.raise "error executing macro run: can't find file '#{filename}'"
+          end
+        else
+          begin
+            relative_to = @location.try &.original_filename
+            found_filenames = @mod.find_in_path(filename, relative_to)
+          rescue ex
+            node.raise "error executing macro run: #{ex.message}"
+          end
 
-        if found_filenames.size > 1
-          node.raise "error executing macro run: '#{filename}' is a directory"
-        end
+          unless found_filenames
+            node.raise "error executing macro run: can't find file '#{filename}'"
+          end
 
-        filename = found_filenames.first
+          if found_filenames.size > 1
+            node.raise "error executing macro run: '#{filename}' is a directory"
+          end
+
+          filename = found_filenames.first
+        end
 
         run_args = [] of String
         node.args.each_with_index do |arg, i|

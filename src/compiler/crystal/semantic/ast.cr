@@ -1,11 +1,12 @@
 require "../syntax/ast"
 require "simple_hash"
 
-# TODO: 100 is a pretty big number for the number of nested generic instantiations,
+# TODO: 10 is a pretty big number for the number of nested generic instantiations,
+# (think Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(Array(...))))))))))
 # but we might want to implement an algorithm that correctly identifies this
 # infinite recursion.
 private def generic_type_too_nested?(nest_level)
-  nest_level > 100
+  nest_level > 10
 end
 
 module Crystal
@@ -43,7 +44,11 @@ module Crystal
           end
         end
 
-        raise "type must be #{freeze_type}, not #{type}", inner, Crystal::FrozenTypeException
+        if self.is_a?(MetaInstanceVar)
+          raise "instance variable '#{self.name}' of #{self.owner} must be #{freeze_type}, not #{type}", inner, Crystal::FrozenTypeException
+        else
+          raise "type must be #{freeze_type}, not #{type}", inner, Crystal::FrozenTypeException
+        end
       end
       @type = type
     end
@@ -201,11 +206,11 @@ module Crystal
       ::raise exception_type.for_node(self, message, inner)
     end
 
-    def visibility=(visibility)
+    def visibility=(visibility : Visibility)
     end
 
     def visibility
-      nil
+      Visibility::Public
     end
 
     def find_owner_trace(owner)
@@ -247,7 +252,9 @@ module Crystal
 
     property :previous
     property :next
-    property :visibility
+    property visibility : Visibility
+    @visibility = Visibility::Public
+
     getter :special_vars
 
     property :block_nest
@@ -540,10 +547,11 @@ module Crystal
     end
   end
 
-  alias MetaVars = SimpleHash(String, MetaVar)
+  alias MetaVars = Hash(String, MetaVar)
 
   class MetaInstanceVar < Var
     property :nil_reason
+    property! :owner
   end
 
   class ClassVar
@@ -561,11 +569,13 @@ module Crystal
 
   class Call
     property :before_vars
-    property :visibility
+    property visibility : Visibility
+    @visibility = Visibility::Public
   end
 
   class Macro
-    property :visibility
+    property visibility : Visibility
+    @visibility = Visibility::Public
   end
 
   class Block

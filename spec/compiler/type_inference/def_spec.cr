@@ -198,22 +198,22 @@ describe "Type inference: def" do
       abstract class Type
       end
 
-      abstract class ContainedType < Type
+      abstract class CType < Type
       end
 
-      abstract class ModuleType < ContainedType
+      abstract class MType < CType
         include DefContainer
       end
 
-      class NonGenericModuleType < ModuleType
+      class NonGenericMType < MType
       end
 
-      class GenericModuleType < ModuleType
+      class GenericMType < MType
       end
 
       b = [] of Type
-      b.push NonGenericModuleType.new
-      b.push GenericModuleType.new
+      b.push NonGenericMType.new
+      b.push GenericMType.new
       b[0].lookup_matches
       ") { int32 }
   end
@@ -327,7 +327,7 @@ describe "Type inference: def" do
 
       Foo.bar
       ),
-      "wrong number of arguments for 'foo' (1 for 0)"
+      "wrong number of arguments for 'foo' (given 1, expected 0)"
   end
 
   it "gives correct error for wrong number of arguments for program call inside type (2) (#1024)" do

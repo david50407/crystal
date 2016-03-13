@@ -181,15 +181,11 @@ module Crystal
     end
 
     def visit(node : ClassDef)
-      if node.abstract
+      if node.abstract?
         @str << keyword("abstract")
         @str << " "
       end
-      if node.struct
-        @str << keyword("struct")
-      else
-        @str << keyword("class")
-      end
+      @str << keyword(node.struct? ? "struct" : "class")
       @str << " "
       node.name.accept self
       if type_vars = node.type_vars
@@ -560,7 +556,7 @@ module Crystal
     end
 
     def visit(node : Def)
-      @str << "abstract " if node.abstract
+      @str << "abstract " if node.abstract?
       @str << "macro " if node.macro_def?
       @str << keyword("def")
       @str << " "
@@ -589,7 +585,7 @@ module Crystal
       end
       newline
 
-      unless node.abstract
+      unless node.abstract?
         accept_with_indent(node.body)
         append_indent
         @str << keyword("end")
@@ -961,14 +957,14 @@ module Crystal
     end
 
     def to_s_binary(node, op)
-      left_needs_parens = node.left.is_a?(Assign) || node.left.is_a?(Expressions)
+      left_needs_parens = need_parens(node.left)
       in_parenthesis(left_needs_parens, node.left)
 
       @str << " "
       @str << op
       @str << " "
 
-      right_needs_parens = node.right.is_a?(Assign) || node.right.is_a?(Expressions)
+      right_needs_parens = need_parens(node.right)
       in_parenthesis(right_needs_parens, node.right)
       false
     end

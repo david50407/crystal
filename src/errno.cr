@@ -1,9 +1,16 @@
 lib LibC
-  ifdef linux || windows
-    @[ThreadLocal]
-    $errno : Int
+  ifdef linux
+    ifdef musl
+      fun __errno_location : Int*
+    else
+      @[ThreadLocal]
+      $errno : Int
+    end
   elsif darwin
     fun __error : Int*
+  elsif windows
+    @[ThreadLocal]
+    $errno : Int
   end
 
   fun strerror(errnum : Int) : Char*
@@ -215,19 +222,31 @@ class Errno < Exception
 
   # Returns the value of libc's errno.
   def self.value
-    ifdef linux || windows
-      LibC.errno
+    ifdef linux
+      ifdef musl
+        LibC.__errno_location.value
+      else
+        LibC.errno
+      end
     elsif darwin
       LibC.__error.value
+    elsif windows
+      LibC.errno
     end
   end
 
   # Sets the value of libc's errno.
   def self.value=(value)
-    ifdef linux || windows
-      LibC.errno = value
+    ifdef linux
+      ifdef musl
+        LibC.__errno_location.value = value
+      else
+        LibC.errno = value
+      end
     elsif darwin
       LibC.__error.value = value
+    elsif windows
+      LibC.errno = value
     end
   end
 end

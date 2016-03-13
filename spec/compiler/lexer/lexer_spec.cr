@@ -185,6 +185,11 @@ describe "Lexer" do
   it_lexes_number :i32, ["+0xFFFF", "+65535"]
   it_lexes_number :i32, ["-0xFFFF", "-65535"]
 
+  it_lexes_number :i64, ["0x80000001", "2147483649"]
+  it_lexes_number :i64, ["-0x80000001", "-2147483649"]
+  it_lexes_number :i64, ["0xFFFFFFFF", "4294967295"]
+  it_lexes_number :i64, ["-0xFFFFFFFF", "-4294967295"]
+
   it_lexes_number :u64, ["0xFFFF_u64", "65535"]
 
   it_lexes_i32 [["0o123", "83"], ["-0o123", "-83"], ["+0o123", "+83"]]
@@ -238,7 +243,8 @@ describe "Lexer" do
   it_lexes_globals ["$foo", "$FOO", "$_foo", "$foo123"]
   it_lexes_symbols [":foo", ":foo!", ":foo?", ":\"foo\"", ":かたな", ":+", ":-", ":*", ":/",
     ":==", ":<", ":<=", ":>", ":>=", ":!", ":!=", ":=~", ":!~", ":&", ":|",
-    ":^", ":~", ":**", ":>>", ":<<", ":%", ":[]", ":[]?", ":[]=", ":<=>", ":==="]
+    ":^", ":~", ":**", ":>>", ":<<", ":%", ":[]", ":[]?", ":[]=", ":<=>", ":===",
+  ]
   it_lexes_global_match_data_index ["$1", "$10", "$1?", "$23?"]
 
   it_lexes "$~", :"$~"
@@ -416,6 +422,20 @@ describe "Lexer" do
     token = lexer.next_token
     token.type.should eq(:NUMBER)
     token.number_kind.should eq(:i32)
+  end
+
+  it "lexes symbol with quote" do
+    lexer = Lexer.new %(:"\\"")
+    token = lexer.next_token
+    token.type.should eq(:SYMBOL)
+    token.value.should eq("\"")
+  end
+
+  it "lexes symbol with backslash (#2187)" do
+    lexer = Lexer.new %(:"\\\\")
+    token = lexer.next_token
+    token.type.should eq(:SYMBOL)
+    token.value.should eq("\\")
   end
 
   assert_syntax_error "'\\uFEDZ'", "expected hexadecimal character in unicode escape"

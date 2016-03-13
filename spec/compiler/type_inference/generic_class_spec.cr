@@ -20,7 +20,7 @@ describe "Type inference: generic class" do
       class Bar < Foo(A, B)
       end
       ),
-      "wrong number of type vars for Foo(T) (2 for 1)"
+      "wrong number of type vars for Foo(T) (given 2, expected 1)"
   end
 
   it "inhertis from generic with instantiation" do
@@ -253,7 +253,7 @@ describe "Type inference: generic class" do
 
       Foo(Char | String).bar
       ),
-      "can't lookup type in union (String | Char)"
+      "can't lookup type in union (Char | String)"
   end
 
   it "instantiates generic class with default argument in initialize (#394)" do
@@ -324,7 +324,7 @@ describe "Type inference: generic class" do
       class Bar < Foo
       end
       ),
-      "wrong number of type vars for Foo(T) (0 for 1)"
+      "wrong number of type vars for Foo(T) (given 0, expected 1)"
   end
 
   %w(Object Value Reference Number Int Float Struct Class Proc Tuple Enum StaticArray Pointer).each do |type|
@@ -346,6 +346,7 @@ describe "Type inference: generic class" do
   it "errors if using Number in alias" do
     assert_error %(
       alias T = Number | String
+      T
       ),
       "can't use Number in unions yet, use a more specific type"
   end
@@ -353,6 +354,7 @@ describe "Type inference: generic class" do
   it "errors if using Number in recursive alias" do
     assert_error %(
       alias T = Number | Pointer(T)
+      T
       ),
       "can't use Number in unions yet, use a more specific type"
   end
@@ -501,6 +503,26 @@ describe "Type inference: generic class" do
       end
 
       foo
+      ),
+      "generic type too nested"
+  end
+
+  it "errors on generic type too nested (#2257)" do
+    assert_error %(
+      class Foo(T)
+      end
+
+      class Bar
+        def initialize(@value)
+        end
+
+        def value
+          @value
+        end
+      end
+
+      foo = Foo(typeof(Bar.new(nil).value))
+      Bar.new(foo)
       ),
       "generic type too nested"
   end

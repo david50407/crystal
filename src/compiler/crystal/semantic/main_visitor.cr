@@ -281,7 +281,7 @@ module Crystal
     def visit_global(node)
       var = mod.global_vars[node.name]?
       unless var
-        var = Var.new(node.name)
+        var = Global.new(node.name)
         mod.global_vars[node.name] = var
       end
       var.bind_to mod.nil_var unless var.dependencies?
@@ -434,9 +434,10 @@ module Crystal
       # Check if this is an instance variable initializer
       unless @scope
         current_type = current_type()
-        if current_type.is_a?(ClassType)
-          @mod.after_inference_types << current_type
-
+        case current_type
+        when Program, FileModule
+          node.raise "can't use instance variables at the top level"
+        when ClassType, NonGenericModuleType
           ivar_visitor = MainVisitor.new(mod)
           ivar_visitor.scope = current_type
 
@@ -445,19 +446,13 @@ module Crystal
           end
 
           current_type.add_instance_var_initializer(target.name, value, ivar_visitor.meta_vars)
-          if current_type.is_a?(GenericType)
-            node.type = @mod.nil
-            return
-          else
-            var = current_type.lookup_instance_var(target.name, true)
-          end
+          node.type = @mod.nil
+          return
         end
       end
 
-      unless var
-        value.accept self
-        var = lookup_instance_var target
-      end
+      value.accept self
+      var = lookup_instance_var target
 
       target.bind_to var
       node.bind_to value
@@ -506,7 +501,7 @@ module Crystal
 
       var = mod.global_vars[target.name]?
       unless var
-        var = Var.new(target.name)
+        var = Global.new(target.name)
 
         # If we are assigning to a global inside a method, make it nilable
         # if this is the first time we are assigning to it, because
@@ -1036,7 +1031,7 @@ module Crystal
       end
 
       if block.args.size > fun_type.fun_types.size - 1
-        node.raise "wrong number of block arguments for #{fun_type}#new (#{block.args.size} for #{fun_type.fun_types.size - 1})"
+        node.wrong_number_of "block arguments", "#{fun_type}#new", block.args.size, fun_type.fun_types.size - 1
       end
 
       # We create a ->(...) { } from the block
@@ -1821,7 +1816,7 @@ module Crystal
         node.raise "can't create instance of generic class #{instance_type} without specifying its type vars"
       end
 
-      if !instance_type.virtual? && instance_type.abstract
+      if !instance_type.virtual? && instance_type.abstract?
         node.raise "can't instantiate abstract #{instance_type.type_desc} #{instance_type}"
       end
 
@@ -2198,7 +2193,7 @@ module Crystal
         end
 
         if attr.args.size != 1
-          attr.raise "wrong number of arguments for attribute CallConvention (#{attr.args.size} for 1)"
+          attr.wrong_number_of_arguments "attribute CallConvention", attr.args.size, 1
         end
 
         call_convention_node = attr.args.first

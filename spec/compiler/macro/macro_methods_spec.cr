@@ -647,6 +647,12 @@ describe "macro methods" do
         [TypeNode.new(GenericClassType.new(program, program, "SomeType", program.object, ["A", "B"]))] of ASTNode
       end
     end
+
+    it "executes class" do
+      assert_macro("x", "{{x.class.name}}", "String:Class") do |program|
+        [TypeNode.new(program.string)] of ASTNode
+      end
+    end
   end
 
   describe "declare var methods" do
@@ -682,7 +688,7 @@ describe "macro methods" do
 
     it "executes visibility" do
       assert_macro "x", %({{x.visibility}}), [Def.new("some_def")] of ASTNode, ":public"
-      assert_macro "x", %({{x.visibility}}), [Def.new("some_def").tap { |d| d.visibility = :private }] of ASTNode, ":private"
+      assert_macro "x", %({{x.visibility}}), [Def.new("some_def").tap { |d| d.visibility = Visibility::Private }] of ASTNode, ":private"
     end
   end
 

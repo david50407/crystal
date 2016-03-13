@@ -1,4 +1,4 @@
-Crystal version: `0.12.0`
+Crystal version: `0.13.0`
 
 # TODO for compiler
 

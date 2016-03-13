@@ -155,7 +155,7 @@ module Crystal
   #     'true' | 'false'
   #
   class BoolLiteral < ASTNode
-    property :value
+    property value : Bool
 
     def initialize(@value)
     end
@@ -376,19 +376,8 @@ module Crystal
   # A local variable or block argument.
   class Var < ASTNode
     property :name
-    property :attributes
 
     def initialize(@name, @type = nil)
-    end
-
-    def add_attributes(attributes)
-      if attributes
-        if my_attributes = @attributes
-          my_attributes.concat attributes
-        else
-          @attributes = attributes.dup
-        end
-      end
     end
 
     def name_size
@@ -462,7 +451,7 @@ module Crystal
     property :doc
 
     def initialize(@obj, @name, @args = [] of ASTNode, @block = nil, @block_arg = nil, @named_args = nil, @global = false, @name_column_number = 0, @has_parenthesis = false)
-      @name_size = nil
+      @name_size = -1
       if block = @block
         block.call = self
       end
@@ -485,7 +474,10 @@ module Crystal
     end
 
     def name_size
-      @name_size ||= name.to_s.ends_with?('=') || name.to_s.ends_with?('@') ? name.size - 1 : name.size
+      if @name_size == -1
+        @name_size = name.to_s.ends_with?('=') || name.to_s.ends_with?('@') ? name.size - 1 : name.size
+      end
+      @name_size
     end
 
     def accept_children(visitor)
@@ -748,6 +740,16 @@ module Crystal
     def initialize(@name)
     end
 
+    def add_attributes(attributes)
+      if attributes
+        if my_attributes = @attributes
+          my_attributes.concat attributes
+        else
+          @attributes = attributes.dup
+        end
+      end
+    end
+
     def name_size
       name.size
     end
@@ -878,7 +880,9 @@ module Crystal
     property :uses_block_arg
     property :assigns_special_var
     property :name_column_number
-    property :abstract
+    property? :abstract
+    @abstract : Bool
+
     property :attributes
     property :splat_index
     property :doc
@@ -1038,11 +1042,11 @@ module Crystal
   end
 
   class VisibilityModifier < ASTNode
-    property modifier
+    property modifier : Visibility
     property exp
     property doc
 
-    def initialize(@modifier, @exp)
+    def initialize(@modifier : Visibility, @exp)
     end
 
     def accept_children(visitor)
@@ -1206,8 +1210,12 @@ module Crystal
     property :body
     property :superclass
     property :type_vars
-    property :abstract
-    property :struct
+    property? :abstract
+    @abstract : Bool
+
+    property? :struct
+    @struct : Bool
+
     property :name_column_number
     property :attributes
     property :doc
@@ -1428,6 +1436,8 @@ module Crystal
 
     def initialize(body = nil, @rescues = nil, @else = nil, @ensure = nil)
       @body = Expressions.from body
+      @implicit = false
+      @suffix = false
     end
 
     def accept_children(visitor)
@@ -2213,6 +2223,12 @@ module Crystal
     end
 
     def_equals_and_hash node, filename
+  end
+
+  enum Visibility : Int8
+    Public
+    Protected
+    Private
   end
 end
 

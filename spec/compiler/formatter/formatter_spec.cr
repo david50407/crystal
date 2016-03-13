@@ -152,7 +152,8 @@ describe Crystal::Formatter do
   assert_format "def   foo (  x  :  self )  \n  end", "def foo(x : self)\nend"
   assert_format "def   foo (  x  :  Foo.class )  \n  end", "def foo(x : Foo.class)\nend"
   assert_format "def   foo (  x  :  Foo+ )  \n  end", "def foo(x : Foo+)\nend"
-  assert_format "def   foo (  x  =   1  :  Int32 )  \n  end", "def foo(x = 1 : Int32)\nend"
+  assert_format "def   foo (  x  =   1  :  Int32 )  \n  end", "def foo(x : Int32 = 1)\nend"
+  assert_format "def   foo (  x  :   Int32  =  1 )  \n  end", "def foo(x : Int32 = 1)\nend"
   assert_format "abstract  def   foo  \n  1", "abstract def foo\n\n1"
   assert_format "def foo( & block )\nend", "def foo(&block)\nend"
   assert_format "def foo( x , & block )\nend", "def foo(x, &block)\nend"
@@ -782,6 +783,11 @@ describe Crystal::Formatter do
   assert_format "<<-HTML\n  \#{1}x\n  y\n  HTML"
   assert_format "<<-HTML\n  \#{1}x\n  y\n  z\n  HTML"
 
+  assert_format "  <<-HTML\n   foo\n  HTML", "<<-HTML\n foo\nHTML"
+  assert_format "  <<-HTML\n   \#{1}\n  HTML", "<<-HTML\n \#{1}\nHTML"
+  assert_format "  <<-HTML\n  \#{1} \#{2}\n  HTML", "<<-HTML\n\#{1} \#{2}\nHTML"
+  assert_format "  <<-HTML\n  foo\nHTML", "<<-HTML\nfoo\nHTML"
+
   assert_format "#!shebang\n1 + 2"
 
   assert_format "   {{\n1 + 2 }}", "{{\n  1 + 2\n}}"
@@ -799,4 +805,9 @@ describe Crystal::Formatter do
   assert_format "foo &.[]?(  1, 2  )", "foo &.[]?(1, 2)"
   assert_format "foo &.[]=(1, 2)"
   assert_format "foo &.[]=(  1, 2  )", "foo &.[]=(1, 2)"
+
+  assert_format "foo.[]"
+  assert_format "foo.[1]"
+
+  assert_format "@foo : Int32 # comment\n\ndef foo\nend"
 end

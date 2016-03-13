@@ -68,7 +68,7 @@ class Crystal::Doc::Type
   end
 
   def abstract?
-    @type.abstract
+    @type.abstract?
   end
 
   def parents_of?(type)
@@ -178,7 +178,7 @@ class Crystal::Doc::Type
         type.defs.try &.each do |def_name, defs_with_metadata|
           defs_with_metadata.each do |def_with_metadata|
             case def_with_metadata.def.visibility
-            when :private, :protected
+            when .private?, .protected?
               next
             end
 
@@ -204,7 +204,7 @@ class Crystal::Doc::Type
             defs_with_metadata.each do |def_with_metadata|
               a_def = def_with_metadata.def
               case a_def.visibility
-              when :private, :protected
+              when .private?, .protected?
                 next
               end
 
@@ -349,7 +349,7 @@ class Crystal::Doc::Type
 
   def container
     case type = @type
-    when ContainedType
+    when NamedType
       container = type.container
       if container.is_a?(Program)
         nil

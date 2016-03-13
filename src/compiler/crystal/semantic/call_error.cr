@@ -1,3 +1,25 @@
+class Crystal::ASTNode
+  def wrong_number_of_arguments(subject, given, expected)
+    wrong_number_of "arguments", subject, given, expected
+  end
+
+  def wrong_number_of(elements, given, expected)
+    raise wrong_number_of_message(elements, given, expected)
+  end
+
+  def wrong_number_of(elements, subject, given, expected)
+    raise wrong_number_of_message(elements, subject, given, expected)
+  end
+
+  def wrong_number_of_message(elements, given, expected)
+    "wrong number of #{elements} (given #{given}, expected #{expected})"
+  end
+
+  def wrong_number_of_message(elements, subject, given, expected)
+    "wrong number of #{elements} for #{subject} (given #{given}, expected #{expected})"
+  end
+end
+
 class Crystal::Call
   def raise_matches_not_found(owner : CStructType, def_name, matches = nil)
     raise_struct_or_union_field_not_found owner, def_name
@@ -120,6 +142,19 @@ class Crystal::Call
       end
     end
 
+    # If it's on an initialize method and there's a similar method name, it's probably a typo
+    if def_name == "initialize" && (similar_def = owner.lookup_similar_def(def_name, self.args.size, block))
+      inner_msg = colorize("do you maybe have a typo in this '#{similar_def.name}' method?").yellow.bold.to_s
+      inner_exception = TypeException.for_node(similar_def, inner_msg)
+    end
+
+    if owner_trace
+      owner_trace.inner = inner_exception
+      inner_exception = nil
+    else
+      owner_trace = inner_exception
+    end
+
     defs_matchin_args_size = defs.select do |a_def|
       min_size, max_size = a_def.min_max_args_sizes
       min_size <= real_args_size <= max_size
@@ -144,17 +179,24 @@ class Crystal::Call
       raise(String.build do |str|
         str << "wrong number of arguments for '"
         str << full_name(owner, def_name)
-        str << "' ("
+        str << "' (given "
         str << real_args_size
-        str << " for "
-        all_arguments_sizes.join ", ", str
-        if min_splat != Int32::MAX
-          str << "+"
+        str << ", expected "
+
+        # If we have 2, 3, 4, show it as 2..4
+        if all_arguments_sizes.size > 1 && all_arguments_sizes.last - all_arguments_sizes.first == all_arguments_sizes.size - 1
+          str << all_arguments_sizes.first
+          str << ".."
+          str << all_arguments_sizes.last
+        else
+          all_arguments_sizes.join ", ", str
         end
+
+        str << "+" if min_splat != Int32::MAX
         str << ")\n"
         str << "Overloads are:"
         append_matches(defs, str)
-      end)
+      end, inner: inner_exception)
     end
 
     if defs_matchin_args_size.size > 0
@@ -233,7 +275,7 @@ class Crystal::Call
 
   def check_abstract_def_error(owner, matches, defs, def_name)
     return unless !matches || (matches.try &.empty?)
-    return unless defs.all? &.abstract
+    return unless defs.all? &.abstract?
 
     signature = CallSignature.new(def_name, args.map(&.type), block, named_args)
     defs.each do |a_def|
@@ -321,7 +363,7 @@ class Crystal::Call
       unless defs.empty?
         all_arguments_sizes = Set(Int32).new
         defs.each { |a_def| all_arguments_sizes << a_def.args.size }
-        raise "wrong number of arguments for '#{concrete_type.instance_type}#initialize' (#{args.size} for #{all_arguments_sizes.join ", "})"
+        wrong_number_of_arguments "'#{concrete_type.instance_type}#initialize'", args.size, all_arguments_sizes.join(", ")
       end
     end
   end
@@ -349,7 +391,7 @@ class Crystal::Call
       end
     end
 
-    raise "wrong number of arguments for macro '#{def_name}' (#{args.size} for #{all_arguments_sizes.join ", "})"
+    wrong_number_of_arguments "macro '#{def_name}'", args.size, all_arguments_sizes.join(", ")
   end
 
   def check_named_args_mismatch(owner, named_args, a_def)
@@ -384,7 +426,7 @@ class Crystal::Call
 
   def check_visibility(match)
     case match.def.visibility
-    when :private
+    when .private?
       if obj = @obj
         if obj.is_a?(Var) && obj.name == "self" && match.def.name.ends_with?('=')
           # Special case: private setter can be called with self
@@ -398,7 +440,7 @@ class Crystal::Call
 
         raise "private method '#{match.def.name}' called for #{match.def.owner}"
       end
-    when :protected
+    when .protected?
       scope_type = scope.instance_type
       owner_type = match.def.owner.instance_type
 
@@ -412,7 +454,7 @@ class Crystal::Call
     end
   end
 
-  def in_same_namespace?(scope : ContainedType, target : ContainedType)
+  def in_same_namespace?(scope : NamedType, target : NamedType)
     top_container(scope) == top_container(target) ||
       scope.parents.try &.any? { |parent| in_same_namespace?(parent, target) }
   end
@@ -425,7 +467,7 @@ class Crystal::Call
     case container = type.container
     when Program
       type
-    when ContainedType
+    when NamedType
       top_container(container)
     else
       type

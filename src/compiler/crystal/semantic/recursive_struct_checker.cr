@@ -29,7 +29,7 @@ module Crystal
     end
 
     def check_types(type)
-      type.types.each_value do |type|
+      type.types?.try &.each_value do |type|
         check_single(type)
       end
     end
@@ -100,7 +100,7 @@ module Crystal
     end
 
     def struct?(type)
-      type.struct? && type.is_a?(InstanceVarContainer) && !type.is_a?(PrimitiveType) && !type.is_a?(FunInstanceType) && !type.is_a?(GenericClassType) && !type.abstract
+      type.struct? && type.is_a?(InstanceVarContainer) && !type.is_a?(PrimitiveType) && !type.is_a?(FunInstanceType) && !type.is_a?(GenericClassType) && !type.abstract?
     end
   end
 end

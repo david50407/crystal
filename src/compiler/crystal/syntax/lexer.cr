@@ -153,8 +153,6 @@ module Crystal
               when char == '\n'
                 @line_number += 1
                 @column_number = 0
-                @token.line_number = @line_number
-                @token.column_number = @column_number
                 break
               when ident_part?(char)
                 here << char
@@ -414,27 +412,25 @@ module Crystal
           line = @line_number
           column = @column_number
           start = current_pos + 1
-          count = 0
-
+          io = MemoryIO.new
           while true
             char = next_char
             case char
             when '\\'
-              if peek_next_char == '"'
-                next_char
-                count += 1
+              if peek_next_char == '"' || peek_next_char == '\\'
+                io << next_char
               end
             when '"'
               break
             when '\0'
               raise "unterminated quoted symbol", line, column
             else
-              count += 1
+              io << char
             end
           end
 
           @token.type = :SYMBOL
-          @token.value = string_range(start)
+          @token.value = io.to_s
           next_char
           set_token_raw_from_start(start - 2)
         else
@@ -1466,7 +1462,7 @@ module Crystal
 
     def finish_scan_prefixed_number(num, negative, start)
       if negative
-        string_value = (-1 * num.to_i64).to_s
+        string_value = (num.to_i64 * -1).to_s
       else
         string_value = num.to_s
       end
@@ -1967,6 +1963,11 @@ module Crystal
           end
         when '#'
           if delimiter_state
+            # If it's "#{..." we don't want "#{{{" to parse it as "# {{ {", but as "#{ {{"
+            # (macro expression inside a string interpolation)
+            if peek_next_char == '{'
+              char = next_char
+            end
             whitespace = false
           else
             break
